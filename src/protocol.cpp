@@ -13,26 +13,6 @@
 #include <arpa/inet.h>
 #endif
 
-static const char* ppszTypeName[] =
-    {
-        "ERROR",
-        "tx",
-        "block",
-        "filtered block",
-        "tx lock request",
-        "tx lock vote",
-        "spork",
-        "mn winner",
-        "mn scan error",
-        "mn budget vote",
-        "mn budget proposal",
-        "mn budget finalized",
-        "mn budget finalized vote",
-        "mn quorum",
-        "mn announce",
-        "mn ping",
-        "dstx"};
-
 CMessageHeader::CMessageHeader()
 {
     memcpy(pchMessageStart, Params().MessageStart(), MESSAGE_START_SIZE);
@@ -112,39 +92,41 @@ CInv::CInv(int typeIn, const uint256& hashIn)
     hash = hashIn;
 }
 
-CInv::CInv(const std::string& strType, const uint256& hashIn)
-{
-    unsigned int i;
-    for (i = 1; i < ARRAYLEN(ppszTypeName); i++) {
-        if (strType == ppszTypeName[i]) {
-            type = i;
-            break;
-        }
-    }
-    if (i == ARRAYLEN(ppszTypeName))
-        LogPrint("net", "CInv::CInv(string, uint256) : unknown type '%s'", strType);
-    hash = hashIn;
-}
-
 bool operator<(const CInv& a, const CInv& b)
 {
     return (a.type < b.type || (a.type == b.type && a.hash < b.hash));
 }
 
-bool CInv::IsKnownType() const
+std::string CInv::GetCommand() const
+
 {
     return (type >= 1 && type < (int)ARRAYLEN(ppszTypeName));
 }
 
-const char* CInv::GetCommand() const
+std::string CInv::GetCommand() const
 {
-    if (!IsKnownType())
-        LogPrint("net", "CInv::GetCommand() : type=%d unknown type", type);
-
-    return ppszTypeName[type];
+    std::string cmd;
+    if (type & MSG_WITNESS_FLAG)
+        cmd.append("witness-");
+    int masked = type & MSG_TYPE_MASK;
+    switch (masked)
+    {
+    case MSG_TX:             return cmd.append(NetMsgType::TX);
+    case MSG_BLOCK:          return cmd.append(NetMsgType::BLOCK);
+    case MSG_FILTERED_BLOCK: return cmd.append(NetMsgType::MERKLEBLOCK);
+    case MSG_CMPCT_BLOCK:    return cmd.append(NetMsgType::CMPCTBLOCK);
+    default:
+        throw std::out_of_range(strprintf("CInv::GetCommand(): type=%d unknown type", type));
+    }
 }
 
 std::string CInv::ToString() const
 {
     return strprintf("%s %s", GetCommand(), hash.ToString());
 }
+
+const std::vector<std::string> &getAllNetMessageTypes()
+{
+    return allNetMessageTypesVec;
+}
+
