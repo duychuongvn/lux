@@ -155,7 +155,10 @@ BITCOIN_CORE_H = \
   zmq/zmqabstractnotifier.h \
   zmq/zmqconfig.h \
   zmq/zmqnotificationinterface.h \
-  zmq/zmqpublishnotifier.h
+  zmq/zmqpublishnotifier.h \
+    indirectmap.h \
+    core_memusage.h \
+    memusage.h
 
 JSON_H = \
   json/json_spirit.h \
